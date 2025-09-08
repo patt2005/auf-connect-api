@@ -1,0 +1,6 @@
+@AufConnectApi_HostAddress = http://localhost:5113
+
+GET {{AufConnectApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

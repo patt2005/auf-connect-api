@@ -1,0 +1,6 @@
+﻿services:
+  aufconnectapi:
+    image: aufconnectapi
+    build:
+      context: .
+      dockerfile: AufConnectApi/Dockerfile
