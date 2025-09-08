@@ -244,31 +244,25 @@ public class WebScrapingService
             var doc = new HtmlDocument();
             doc.LoadHtml(html);
 
-            // Extract member name from h1.entry-title
             var titleNode = doc.DocumentNode.SelectSingleNode("//h1[@class='entry-title']");
             var memberName = titleNode?.InnerText?.Trim();
             if (string.IsNullOrEmpty(memberName))
                 return null;
 
-            // Extract description from first entry-content div
             var descriptionNode = doc.DocumentNode.SelectSingleNode("//div[@class='entry-content'][1]//p");
             var description = descriptionNode?.InnerText?.Trim() ?? "";
 
-            // Extract historical information (Historique section)
             var historyNode = doc.DocumentNode.SelectSingleNode("//div[@class='entry-content entry-history']//p");
             var background = historyNode?.InnerText?.Trim() ?? "";
 
-            // Extract contact information from the contacts block
             var contactsBlock = doc.DocumentNode.SelectSingleNode("//div[@class='block block-contacts']");
 
-            // Extract contact name and title
             var contactNameNode = contactsBlock?.SelectSingleNode(".//div[@class='name'][2]//strong");
             var contactName = contactNameNode?.InnerText?.Trim() ?? "";
 
             var contactTitleNode = contactsBlock?.SelectSingleNode(".//div[@class='occupation']");
             var contactTitle = contactTitleNode?.InnerText?.Trim() ?? "";
 
-            // Extract statutory and university types
             var statusNode = contactsBlock?.SelectSingleNode(".//div[@class='status']");
             var statutoryType = "";
             var universityType = "";

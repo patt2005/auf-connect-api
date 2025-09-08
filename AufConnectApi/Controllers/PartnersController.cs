@@ -26,19 +26,26 @@ public class PartnersController : ControllerBase
 
         try
         {
-            var allPartners = await _webScrapingService.ScrapePartnerPreviewsAsync("https://www.auf.org/partenaires/nos-partenaires/");
+            var totalCount = await _context.Partners.CountAsync();
             
-            var totalCount = allPartners.Count;
-            var partners = allPartners
+            var partners = await _context.Partners
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .ToList();
+                .Select(p => new PreviewPartner
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    Link = p.PartnerUrl,
+                    ImageUrl = p.LogoUrl,
+                    Description = string.Empty
+                })
+                .ToListAsync();
 
             var result = new PagedResult<PreviewPartner>
             {
                 Data = partners,
                 PageNumber = pageNumber,
-                PageSize = partners.Count, // Use actual count of returned partners
+                PageSize = pageSize,
                 TotalCount = totalCount
             };
 

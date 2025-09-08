@@ -1,7 +1,7 @@
 using AufConnectApi.Data;
 using AufConnectApi.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
 
 namespace AufConnectApi.Controllers;
 
@@ -31,48 +31,97 @@ public class ProjectsController : ControllerBase
 
         try
         {
-            var baseUrl = pageNumber == 1 
-                ? "https://www.auf.org/nos-actions/" 
-                : $"https://www.auf.org/nos-actions/page/{pageNumber}/";
-
-            var url = baseUrl;
-            var query = new Dictionary<string, string?>();
-
+            var query = _context.Projects.AsQueryable();
+            
             if (regions != null && regions.Count > 0)
             {
-                for (int i = 0; i < regions.Count; i++)
-                {
-                    query[$"region[{i}]"] = regions[i];
-                }
-            }
-            if (axes != null && axes.Count > 0)
-            {
-                for (int i = 0; i < axes.Count; i++)
-                {
-                    query[$"axe[{i}]"] = axes[i];
-                }
-            }
-            if (statuses != null && statuses.Count > 0)
-            {
-                for (int i = 0; i < statuses.Count; i++)
-                {
-                    query[$"statut[{i}]"] = statuses[i];
-                }
-            }
-            if (query.Count > 0)
-            {
-                url = QueryHelpers.AddQueryString(baseUrl, query);
+                query = query.Where(p => regions.Any(r => p.CountryOfIntervention.Contains(r)));
             }
             
-            var projects = await _webScrapingService.ScrapeProjectPreviewsAsync(url);
+            var totalCount = await query.CountAsync();
             
-            var totalCount = pageNumber == 1 && projects.Count < pageSize ? projects.Count : pageNumber * pageSize;
+            var projects = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(p => new PreviewProject
+                {
+                    Id = p.Id,
+                    Title = p.Title,
+                    Description = p.Objectives,
+                    Region = p.CountryOfIntervention,
+                    Link = string.Empty,
+                    ImageUrl = p.ImageUrl
+                })
+                .ToListAsync();
 
             var result = new PagedResult<PreviewProject>
             {
                 Data = projects,
                 PageNumber = pageNumber,
-                PageSize = projects.Count,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
+
+            return Ok(result);
+
+            
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error fetching projects: {ex.Message}");
+        }
+    }
+
+    [HttpGet("search")]
+    public async Task<ActionResult<PagedResult<PreviewProject>>> SearchProjects(
+        [FromQuery] string query, 
+        [FromQuery] int pageNumber = 1, 
+        [FromQuery] int pageSize = 10)
+    {
+        if (pageNumber < 1) pageNumber = 1;
+        if (pageSize < 1 || pageSize > 100) pageSize = 10;
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                return BadRequest("Search query is required.");
+            }
+
+            var searchQuery = _context.Projects.AsQueryable();
+
+            // Search across multiple fields
+            searchQuery = searchQuery.Where(p => 
+                p.Title.Contains(query) ||
+                p.Objectives.Contains(query) ||
+                p.TargetAudience.Contains(query) ||
+                p.CountryOfIntervention.Contains(query) ||
+                p.Period.Contains(query) ||
+                p.ProjectsFor2024_2025.Contains(query) ||
+                p.ProjectsFor2023_2024.Contains(query) ||
+                p.ProjectsFor2021_2022.Contains(query));
+
+            var totalCount = await searchQuery.CountAsync();
+            
+            var projects = await searchQuery
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(p => new PreviewProject
+                {
+                    Id = p.Id,
+                    Title = p.Title,
+                    Description = p.Objectives,
+                    Region = p.CountryOfIntervention,
+                    Link = string.Empty,
+                    ImageUrl = p.ImageUrl
+                })
+                .ToListAsync();
+
+            var result = new PagedResult<PreviewProject>
+            {
+                Data = projects,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
                 TotalCount = totalCount
             };
 
@@ -80,7 +129,7 @@ public class ProjectsController : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(500, $"Error fetching projects: {ex.Message}");
+            return StatusCode(500, $"Error searching projects: {ex.Message}");
         }
     }
 

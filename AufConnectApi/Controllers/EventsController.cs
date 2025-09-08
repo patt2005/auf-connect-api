@@ -2,7 +2,6 @@ using AufConnectApi.Data;
 using AufConnectApi.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Query;
 
 namespace AufConnectApi.Controllers;
 
@@ -27,19 +26,26 @@ public class EventsController : ControllerBase
 
         try
         {
-            var url = pageNumber == 1 
-                ? "https://www.francophonie.org/actualites-medias?type=page_evenement"
-                : $"https://www.francophonie.org/actualites-medias?type=page_evenement&pays=All&event=All&eventart=All&pers=All&inst=All&parten=All&uhs=All&page={pageNumber - 1}";
+            var totalCount = await _context.Events.CountAsync();
             
-            var events = await _webScrapingService.ScrapeEventPreviewsAsync(url);
-            
-            var totalCount = pageNumber == 1 && events.Count < pageSize ? events.Count : pageNumber * pageSize;
+            var events = await _context.Events
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(e => new PreviewEvent
+                {
+                    Id = e.Id,
+                    Title = e.Title,
+                    Date = e.Date,
+                    City = e.City,
+                    Link = $"/api/events/{e.Id}"
+                })
+                .ToListAsync();
 
             var result = new PagedResult<PreviewEvent>
             {
                 Data = events,
                 PageNumber = pageNumber,
-                PageSize = events.Count,
+                PageSize = pageSize,
                 TotalCount = totalCount
             };
 
@@ -48,6 +54,28 @@ public class EventsController : ControllerBase
         catch (Exception ex)
         {
             return StatusCode(500, $"Error fetching events: {ex.Message}");
+        }
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<Event>> GetEventById(Guid id)
+    {
+        try
+        {
+            var eventDetail = await _context.Events
+                .Include(e => e.Sections)
+                .FirstOrDefaultAsync(e => e.Id == id);
+
+            if (eventDetail == null)
+            {
+                return NotFound($"Event with ID '{id}' not found.");
+            }
+
+            return Ok(eventDetail);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error fetching event details: {ex.Message}");
         }
     }
 

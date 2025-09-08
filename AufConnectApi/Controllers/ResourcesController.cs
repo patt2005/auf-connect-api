@@ -26,26 +26,34 @@ public class ResourcesController : ControllerBase
 
         try
         {
-            var url = GetResourceUrl(type);
-            if (string.IsNullOrEmpty(url))
-            {
-                return BadRequest($"Invalid resource type: {type}");
-            }
+            var query = _context.Resources
+                .Include(r => r.Sections)
+                .Where(r => r.Type == type);
 
-            var allResources = await _webScrapingService.ScrapeResourcePreviewsAsync(url);
+            var totalSectionsCount = await query
+                .SelectMany(r => r.Sections)
+                .CountAsync();
             
-            var totalCount = allResources.Count;
-            var resources = allResources
+            var resourceSections = await query
+                .SelectMany(r => r.Sections)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .ToList();
+                .Select(s => new PreviewResource
+                {
+                    Id = s.Id,
+                    Title = s.Title,
+                    Description = s.Description,
+                    Link = s.Url,
+                    ImageUrl = s.ImageUrl
+                })
+                .ToListAsync();
 
             var result = new PagedResult<PreviewResource>
             {
-                Data = resources,
+                Data = resourceSections,
                 PageNumber = pageNumber,
-                PageSize = resources.Count, // Use actual count of returned resources
-                TotalCount = totalCount
+                PageSize = pageSize,
+                TotalCount = totalSectionsCount
             };
 
             return Ok(result);
@@ -54,20 +62,6 @@ public class ResourcesController : ControllerBase
         {
             return StatusCode(500, $"Error fetching resources: {ex.Message}");
         }
-    }
-
-    private string GetResourceUrl(ResourceType type)
-    {
-        return type switch
-        {
-            ResourceType.Formation => "https://www.auf.org/ressources-et-services/formation/",
-            ResourceType.Resources => "https://www.auf.org/ressources-et-services/ressource/",
-            ResourceType.Expertise => "https://www.auf.org/ressources-et-services/expertise/",
-            ResourceType.Innovation => "https://www.auf.org/ressources-et-services/innovation/",
-            ResourceType.Prospective => "https://www.auf.org/ressources-et-services/prospective/",
-            ResourceType.Allocation => "https://www.auf.org/ressources-et-services/bourses/",
-            _ => ""
-        };
     }
 
     [HttpPost("add-resource")]

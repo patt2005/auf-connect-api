@@ -26,19 +26,26 @@ public class MembersController : ControllerBase
 
         try
         {
-            var url = pageNumber == 1 
-                ? "https://www.auf.org/les_membres/nos-membres/" 
-                : $"https://www.auf.org/les_membres/nos-membres/page/{pageNumber}/";
+            var totalCount = await _context.Members.CountAsync();
             
-            var members = await _webScrapingService.ScrapeMemberPreviewsAsync(url);
-            
-            var totalCount = pageNumber == 1 && members.Count < pageSize ? members.Count : pageNumber * pageSize;
+            var members = await _context.Members
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(m => new PreviewMember
+                {
+                    Id = m.Id,
+                    Name = m.Name,
+                    Address = m.Address,
+                    Region = m.Region,
+                    Link = m.Website
+                })
+                .ToListAsync();
 
             var result = new PagedResult<PreviewMember>
             {
                 Data = members,
                 PageNumber = pageNumber,
-                PageSize = members.Count,
+                PageSize = pageSize,
                 TotalCount = totalCount
             };
 
