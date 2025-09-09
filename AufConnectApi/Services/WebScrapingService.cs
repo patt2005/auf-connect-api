@@ -804,4 +804,261 @@ public class WebScrapingService
 
         return new List<string> { "Coordination et mise en œuvre" };
     }
+
+    public async Task<List<Member>> ScrapeResuffMembersAsync(string url)
+    {
+        var members = new List<Member>();
+        
+        try
+        {
+            var html = await _httpClient.GetStringAsync(url);
+            var doc = new HtmlDocument();
+            doc.LoadHtml(html);
+
+            // Find all region sections (Amériques, Europe, Afrique, Asie)
+            var regionSections = doc.DocumentNode.SelectNodes("//div[@class='groupeCarte']");
+
+            if (regionSections != null)
+            {
+                foreach (var regionSection in regionSections)
+                {
+                    var regionTitleNode = regionSection.SelectSingleNode(".//h3");
+                    var regionName = regionTitleNode?.InnerText?.Trim() ?? "";
+
+                    var textDoubleNode = regionSection.SelectSingleNode(".//div[@class='txtDouble']");
+                    if (textDoubleNode != null)
+                    {
+                        var memberEntries = ExtractMembersFromRegionText(textDoubleNode.InnerHtml, regionName);
+                        members.AddRange(memberEntries);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Error scraping RESUFF members: {ex.Message}", ex);
+        }
+
+        return members;
+    }
+
+    private List<Member> ExtractMembersFromRegionText(string htmlContent, string region)
+    {
+        var members = new List<Member>();
+        
+        try
+        {
+            // Split by <br> tags and process each member entry
+            var memberBlocks = htmlContent.Split(new string[] { "&nbsp;<br>" }, StringSplitOptions.RemoveEmptyEntries);
+            
+            foreach (var block in memberBlocks)
+            {
+                var member = ParseMemberBlock(block.Trim(), region);
+                if (member != null)
+                {
+                    members.Add(member);
+                }
+            }
+        }
+        catch (Exception)
+        {
+            // Continue processing other members if one fails
+        }
+
+        return members;
+    }
+
+    private Member? ParseMemberBlock(string memberBlock, string region)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(memberBlock)) return null;
+
+            var doc = new HtmlDocument();
+            doc.LoadHtml(memberBlock);
+
+            // Extract name from <strong class="violet"> tag
+            var nameNode = doc.DocumentNode.SelectSingleNode(".//strong[@class='violet']");
+            if (nameNode == null) return null;
+
+            var fullName = nameNode.InnerText?.Trim();
+            if (string.IsNullOrEmpty(fullName)) return null;
+
+            // Get the text content and clean it
+            var fullText = System.Web.HttpUtility.HtmlDecode(doc.DocumentNode.InnerText)
+                .Replace("&nbsp;", " ")
+                .Trim();
+
+            // Split into lines and process
+            var lines = fullText.Split(new char[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(l => l.Trim())
+                .Where(l => !string.IsNullOrEmpty(l))
+                .ToList();
+
+            if (lines.Count == 0) return null;
+
+            // First line should contain the name, extract the rest as description
+            var description = "";
+            var contactTitle = "";
+            var contactName = fullName;
+
+            // Check if there's additional role information (like committee membership)
+            var specialRoleMatch = System.Text.RegularExpressions.Regex.Match(fullText, 
+                @"(Présidente du RESUFF|Vice-Présidente du RESUFF|Secrétaire du RESUFF|Trésorière du RESUFF|Membre du Comité scientifique du RESUFF|Présidente du Comité scientifique du RESUFF)");
+            
+            var specialRole = specialRoleMatch.Success ? specialRoleMatch.Groups[1].Value : "";
+
+            // Extract the description (everything after the name line)
+            if (lines.Count > 1)
+            {
+                var descriptionLines = lines.Skip(1).ToList();
+                
+                // Remove the special role if it was found in the lines
+                if (!string.IsNullOrEmpty(specialRole))
+                {
+                    descriptionLines = descriptionLines.Where(line => !line.Contains(specialRole.Replace("du RESUFF", "").Trim())).ToList();
+                }
+                
+                description = string.Join(" ", descriptionLines);
+                
+                // Try to extract the most recent/primary title (usually the first line after name)
+                if (descriptionLines.Count > 0)
+                {
+                    contactTitle = descriptionLines[0];
+                }
+            }
+
+            // Extract institution/university name (usually the last line or contains "Université")
+            var institutionMatch = System.Text.RegularExpressions.Regex.Match(description, 
+                @"(Université[^,]*|École[^,]*|Institut[^,]*|Centre[^,]*)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            
+            var institution = institutionMatch.Success ? institutionMatch.Groups[1].Value.Trim() : "";
+
+            return new Member
+            {
+                Id = Guid.NewGuid(),
+                Name = fullName,
+                Description = description.Length > 500 ? description.Substring(0, 500) + "..." : description,
+                Background = !string.IsNullOrEmpty(specialRole) ? $"RESUFF Role: {specialRole}" : null,
+                ContactName = contactName,
+                ContactTitle = contactTitle.Length > 200 ? contactTitle.Substring(0, 200) + "..." : contactTitle,
+                StatutoryType = !string.IsNullOrEmpty(specialRole) ? "RESUFF Leadership" : null,
+                UniversityType = !string.IsNullOrEmpty(institution) ? "Academic Institution" : null,
+                Address = institution.Length > 200 ? institution.Substring(0, 200) + "..." : institution,
+                Phone = null,
+                Website = null,
+                Region = region,
+                FoundedYear = null
+            };
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    public async Task<List<Resource>> ScrapeResuffResourcesAsync(string url)
+    {
+        var resources = new List<Resource>();
+        
+        try
+        {
+            var html = await _httpClient.GetStringAsync(url);
+            var doc = new HtmlDocument();
+            doc.LoadHtml(html);
+
+            // Find all resource documents with class "ligneDoc"
+            var resourceNodes = doc.DocumentNode.SelectNodes("//div[@class='ligneDoc']");
+
+            if (resourceNodes != null)
+            {
+                foreach (var resourceNode in resourceNodes)
+                {
+                    var resource = ExtractResourceFromResuffNode(resourceNode);
+                    if (resource != null)
+                    {
+                        resources.Add(resource);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Error scraping RESUFF resources: {ex.Message}", ex);
+        }
+
+        return resources;
+    }
+
+    private Resource? ExtractResourceFromResuffNode(HtmlNode resourceNode)
+    {
+        try
+        {
+            var txtDocNode = resourceNode.SelectSingleNode(".//div[@class='txtDoc']");
+            if (txtDocNode == null) return null;
+
+            var violetSpan = txtDocNode.SelectSingleNode(".//span[@class='violet']");
+            var moyenSpan = txtDocNode.SelectSingleNode(".//span[@class='moyen']");
+
+            if (violetSpan == null || moyenSpan == null) return null;
+
+            var resourceType = violetSpan.InnerText?.Trim();
+            var title = System.Web.HttpUtility.HtmlDecode(moyenSpan.InnerText?.Trim());
+
+            if (string.IsNullOrEmpty(resourceType) || string.IsNullOrEmpty(title)) return null;
+
+            var linkNode = resourceNode.SelectSingleNode(".//a[@href]");
+            var link = linkNode?.GetAttributeValue("href", "");
+
+            if (!string.IsNullOrEmpty(link) && !link.StartsWith("http"))
+            {
+                if (link.StartsWith("/"))
+                {
+                    link = "https://www.resuff.org" + link;
+                }
+                else
+                {
+                    link = "https://www.resuff.org/" + link;
+                }
+            }
+
+            var enumType = DetermineResourceType(resourceType, title);
+
+            var resource = new Resource
+            {
+                Id = Guid.NewGuid(),
+                Type = enumType,
+                Link = link
+            };
+
+            return resource;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    private ResourceType DetermineResourceType(string resourceTypeText, string title)
+    {
+        var lowerType = resourceTypeText.ToLower();
+        var lowerTitle = title.ToLower();
+
+        if (lowerType.Contains("colloque") || lowerType.Contains("atelier"))
+            return ResourceType.Formation;
+        
+        if (lowerType.Contains("bio"))
+            return ResourceType.Expertise;
+        
+        if (lowerType.Contains("publication"))
+            return ResourceType.Resources;
+        
+        if (lowerTitle.Contains("synthèse"))
+            return ResourceType.Formation;
+        
+        if (lowerTitle.Contains("programme"))
+            return ResourceType.Innovation;
+
+        return ResourceType.Resources;
+    }
 }

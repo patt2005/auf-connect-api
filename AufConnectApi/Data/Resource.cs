@@ -20,6 +20,8 @@ public class Resource
     [Required]
     public ResourceType Type { get; set; }
     
+    public string? Link { get; set; }
+    
     public ICollection<ResourceSection> Sections { get; set; } = new List<ResourceSection>();
 }
 

@@ -80,23 +80,22 @@ public class EventsController : ControllerBase
     }
 
     [HttpGet("details")]
-    public async Task<ActionResult<Event>> GetEventByLink([FromQuery] string link)
+    public async Task<ActionResult<Event>> GetEventByName([FromQuery] string name)
     {
         try
         {
-            if (string.IsNullOrEmpty(link))
+            if (string.IsNullOrEmpty(name))
             {
-                return BadRequest("Event link is required.");
+                return BadRequest("Event name is required.");
             }
             
-            var fullLink = link.StartsWith("http") ? link : $"https://www.francophonie.org{link}";
-            Console.WriteLine(fullLink);
-            
-            var eventDetail = await _webScrapingService.ScrapeEventDetailsAsync(fullLink);
+            var eventDetail = await _context.Events
+                .Include(e => e.Sections)
+                .FirstOrDefaultAsync(e => e.Title == name);
 
             if (eventDetail == null)
             {
-                return NotFound($"Event with link '{link}' not found or could not be scraped.");
+                return NotFound($"Event with name '{name}' not found.");
             }
 
             return Ok(eventDetail);

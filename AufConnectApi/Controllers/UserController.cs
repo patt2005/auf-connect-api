@@ -367,6 +367,46 @@ public class UserController : ControllerBase
             return StatusCode(500, $"Error fetching user favorites: {ex.Message}");
         }
     }
+
+    [HttpPut("set-fcm-token")]
+    public async Task<ActionResult> SetFcmToken([FromQuery] string id, [FromBody] SetFcmTokenRequest request)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(id))
+            {
+                return BadRequest("User id is required.");
+            }
+
+            if (!Guid.TryParse(id, out var userId))
+            {
+                return BadRequest("Invalid id format. Must be a valid GUID.");
+            }
+
+            if (string.IsNullOrEmpty(request.FcmToken))
+            {
+                return BadRequest("FCM token is required.");
+            }
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            
+            if (user == null)
+            {
+                return NotFound("User not found");
+            }
+
+            user.FcmToken = request.FcmToken;
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "FCM token updated successfully" });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error setting FCM token: {ex.Message}");
+        }
+    }
 }
 
 public class AddToFavoritesRequest
@@ -377,6 +417,11 @@ public class AddToFavoritesRequest
 public class RemoveFromFavoritesRequest
 {
     public string ProjectLink { get; set; } = string.Empty;
+}
+
+public class SetFcmTokenRequest
+{
+    public string FcmToken { get; set; } = string.Empty;
 }
 
 public class RegisterRequest

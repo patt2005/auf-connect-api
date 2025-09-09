@@ -35,8 +35,8 @@ public class MembersController : ControllerBase
                 {
                     Id = m.Id,
                     Name = m.Name,
+                    Region = m.Region ?? string.Empty,
                     Address = m.Address,
-                    Region = m.Region,
                     Link = m.Website
                 })
                 .ToListAsync();
@@ -58,20 +58,39 @@ public class MembersController : ControllerBase
     }
 
     [HttpGet("details")]
-    public async Task<ActionResult<Member>> GetMemberByLink([FromQuery] string link)
+    public async Task<ActionResult<Member>> GetMemberByIdOrName([FromQuery] string? id, [FromQuery] string? name)
     {
         try
         {
-            if (string.IsNullOrEmpty(link))
+            if (string.IsNullOrEmpty(id) && string.IsNullOrEmpty(name))
             {
-                return BadRequest("Member link is required.");
+                return BadRequest("Either id or name must be provided.");
             }
-            
-            var member = await _webScrapingService.ScrapeMemberDetailsAsync(link);
+
+            Member? member = null;
+
+            if (!string.IsNullOrEmpty(id))
+            {
+                if (Guid.TryParse(id, out var guidId))
+                {
+                    member = await _context.Members
+                        .FirstOrDefaultAsync(m => m.Id == guidId);
+                }
+                else
+                {
+                    return BadRequest("Invalid id format. Must be a valid GUID.");
+                }
+            }
+            else if (!string.IsNullOrEmpty(name))
+            {
+                member = await _context.Members
+                    .FirstOrDefaultAsync(m => m.Name == name);
+            }
 
             if (member == null)
             {
-                return NotFound($"Member with link '{link}' not found or could not be scraped.");
+                var searchParam = !string.IsNullOrEmpty(id) ? $"id '{id}'" : $"name '{name}'";
+                return NotFound($"Member with {searchParam} not found.");
             }
 
             return Ok(member);
@@ -96,5 +115,46 @@ public class MembersController : ControllerBase
         await _context.SaveChangesAsync();
 
         return CreatedAtAction(nameof(GetMembers), new { id = memberRequest.Id }, memberRequest);
+    }
+
+    [HttpPost("scrape-resuff-members")]
+    public async Task<ActionResult<List<Member>>> ScrapeAndSaveResuffMembers([FromQuery] string url = "https://www.resuff.org/membres.php")
+    {
+        try
+        {
+            var scrapedMembers = await _webScrapingService.ScrapeResuffMembersAsync(url);
+            
+            if (scrapedMembers == null || !scrapedMembers.Any())
+            {
+                return BadRequest("No members found to scrape.");
+            }
+
+            // Clear existing members if needed (optional)
+            // _context.Members.RemoveRange(_context.Members);
+            
+            // Add scraped members to database
+            foreach (var member in scrapedMembers)
+            {
+                // Check if member already exists by name to avoid duplicates
+                var existingMember = await _context.Members
+                    .FirstOrDefaultAsync(m => m.Name == member.Name);
+                
+                if (existingMember == null)
+                {
+                    _context.Members.Add(member);
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { 
+                Message = $"Successfully scraped and saved {scrapedMembers.Count} members", 
+                Members = scrapedMembers 
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error scraping RESUFF members: {ex.Message}");
+        }
     }
 }

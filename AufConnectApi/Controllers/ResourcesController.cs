@@ -64,6 +64,52 @@ public class ResourcesController : ControllerBase
         }
     }
 
+    [HttpGet("details")]
+    public async Task<ActionResult<ResourceSection>> GetResourceByIdOrName([FromQuery] string? id, [FromQuery] string? name)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(id) && string.IsNullOrEmpty(name))
+            {
+                return BadRequest("Either id or name must be provided.");
+            }
+
+            ResourceSection? resourceSection = null;
+
+            if (!string.IsNullOrEmpty(id))
+            {
+                if (Guid.TryParse(id, out var guidId))
+                {
+                    resourceSection = await _context.ResourceSections
+                        .Include(rs => rs.Resource)
+                        .FirstOrDefaultAsync(rs => rs.Id == guidId);
+                }
+                else
+                {
+                    return BadRequest("Invalid id format. Must be a valid GUID.");
+                }
+            }
+            else if (!string.IsNullOrEmpty(name))
+            {
+                resourceSection = await _context.ResourceSections
+                    .Include(rs => rs.Resource)
+                    .FirstOrDefaultAsync(rs => rs.Title == name);
+            }
+
+            if (resourceSection == null)
+            {
+                var searchParam = !string.IsNullOrEmpty(id) ? $"id '{id}'" : $"name '{name}'";
+                return NotFound($"Resource with {searchParam} not found.");
+            }
+
+            return Ok(resourceSection);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error fetching resource details: {ex.Message}");
+        }
+    }
+
     [HttpPost("add-resource")]
     public async Task<ActionResult<Resource>> CreateResource([FromBody] Resource resourceRequest)
     {
@@ -84,5 +130,43 @@ public class ResourcesController : ControllerBase
         await _context.SaveChangesAsync();
 
         return CreatedAtAction(nameof(GetResources), new { id = resourceRequest.Id }, resourceRequest);
+    }
+
+    [HttpPost("scrape-resuff-resources")]
+    public async Task<ActionResult<List<Resource>>> ScrapeAndSaveResuffResources([FromQuery] string url = "https://www.resuff.org/ressources.php")
+    {
+        try
+        {
+            var scrapedResources = await _webScrapingService.ScrapeResuffResourcesAsync(url);
+            
+            if (scrapedResources == null || !scrapedResources.Any())
+            {
+                return BadRequest("No resources found to scrape.");
+            }
+
+            // Add scraped resources to database
+            foreach (var resource in scrapedResources)
+            {
+                // Check if resource already exists by link to avoid duplicates
+                var existingResource = await _context.Resources
+                    .AnyAsync(r => r.Link == resource.Link);
+                
+                if (!existingResource)
+                {
+                    _context.Resources.Add(resource);
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { 
+                Message = $"Successfully scraped and saved {scrapedResources.Count} resources", 
+                Resources = scrapedResources 
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error scraping RESUFF resources: {ex.Message}");
+        }
     }
 }

@@ -35,7 +35,66 @@ public class ProjectsController : ControllerBase
             
             if (regions != null && regions.Count > 0)
             {
-                query = query.Where(p => regions.Any(r => p.CountryOfIntervention.Contains(r)));
+                var regionMappings = new Dictionary<string, string>
+                {
+                    ["ocean-indien"] = "AUF - Afrique Australe et Océan Indien",
+                    ["afrique-centrale-grands-lacs"] = "AUF - Afrique Centrale et Grands Lacs",
+                    ["afrique-ouest"] = "AUF - Afrique de l'Ouest",
+                    ["maghreb"] = "AUF - Afrique du Nord",
+                    ["ameriques"] = "AUF - Amériques",
+                    ["asie-pacifique"] = "AUF - Asie-Pacifique",
+                    ["caraibe"] = "AUF - Caraïbe",
+                    ["europe-centrale-orientale"] = "AUF - Europe Centrale et Orientale",
+                    ["europe-ouest"] = "AUF - Europe Occidentale",
+                    ["moyen-orient"] = "AUF - Moyen-Orient",
+                    ["international"] = "International"
+                };
+                
+                var mappedRegions = regions.Where(r => regionMappings.ContainsKey(r.ToLower()))
+                                          .Select(r => regionMappings[r.ToLower()])
+                                          .ToList();
+                
+                if (mappedRegions.Any())
+                {
+                    query = query.Where(p => mappedRegions.Any(r => p.CountryOfIntervention.Contains(r)));
+                }
+            }
+            
+            if (axes != null && axes.Count > 0)
+            {
+                var axeMappings = new Dictionary<string, string>
+                {
+                    ["accreditation"] = "Accréditation",
+                    ["clef"] = "CLEF",
+                    ["developpement"] = "Développement",
+                    ["emploi"] = "Emploi",
+                    ["employabilite-et-insertion-professionnelle"] = "Employabilité et insertion professionnelle",
+                    ["entrepreneuriat"] = "Entrepreneuriat",
+                    ["formation"] = "Formation",
+                    ["francophonie"] = "Francophonie",
+                    ["gouvernance"] = "Gouvernance",
+                    ["intelligence-artificielle"] = "Intelligence artificielle",
+                    ["qualite"] = "Qualité",
+                    ["recherche"] = "Recherche"
+                };
+                
+                var mappedAxes = axes.Where(a => axeMappings.ContainsKey(a.ToLower()))
+                                    .Select(a => axeMappings[a.ToLower()])
+                                    .ToList();
+                
+                if (mappedAxes.Any())
+                {
+                    query = query.Where(p => p.RoleOfAufInAction.Any(role => mappedAxes.Any(axe => role.Contains(axe))));
+                }
+            }
+            
+            if (statuses != null && statuses.Count > 0)
+            {
+                query = query.Where(p => statuses.Any(status => 
+                    p.ProjectsFor2024_2025.ToLower().Contains(status.ToLower()) ||
+                    p.ProjectsFor2023_2024.ToLower().Contains(status.ToLower()) ||
+                    p.ProjectsFor2021_2022.ToLower().Contains(status.ToLower()) ||
+                    p.Period.ToLower().Contains(status.ToLower())));
             }
             
             var totalCount = await query.CountAsync();
@@ -63,8 +122,6 @@ public class ProjectsController : ControllerBase
             };
 
             return Ok(result);
-
-            
         }
         catch (Exception ex)
         {
@@ -134,20 +191,33 @@ public class ProjectsController : ControllerBase
     }
 
     [HttpGet("details")]
-    public async Task<ActionResult<Project>> GetProjectByLink([FromQuery] string link)
+    public async Task<ActionResult<Project>> GetProjectByIdOrName([FromQuery] string? id)
     {
         try
         {
-            if (string.IsNullOrEmpty(link))
+            if (string.IsNullOrEmpty(id))
             {
-                return BadRequest("Project link is required.");
+                return BadRequest("Either id or name must be provided.");
             }
-            
-            var project = await _webScrapingService.ScrapeProjectDetailsAsync(link);
+
+            Project? project = null;
+
+            if (!string.IsNullOrEmpty(id))
+            {
+                if (Guid.TryParse(id, out var guidId))
+                {
+                    project = await _context.Projects
+                        .FirstOrDefaultAsync(p => p.Id == guidId);
+                }
+                else
+                {
+                    return BadRequest("Invalid id format. Must be a valid GUID.");
+                }
+            }
 
             if (project == null)
             {
-                return NotFound($"Project with link '{link}' not found or could not be scraped.");
+                return NotFound($"Project with id {id} not found.");
             }
 
             return Ok(project);
