@@ -23,6 +23,11 @@ steps:
       - '$_GCR_HOSTNAME/$PROJECT_ID/$_SERVICE_NAME:$COMMIT_SHA'
       - '--region'
       - $_DEPLOY_REGION
+      - '--port'
+      - '8080'
+      - '--allow-unauthenticated'
+      - '--set-env-vars'
+      - 'ASPNETCORE_ENVIRONMENT=Production'
     entrypoint: gcloud
     id: Deploy
 timeout: 1200s

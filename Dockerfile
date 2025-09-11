@@ -9,17 +9,17 @@ ENV BUILD_CONFIGURATION=$BUILD_CONFIGURATION
 WORKDIR /src
 
 # Copy csproj and restore as distinct layers for better caching
-COPY ["AufConnectApi.csproj", "./"]
-RUN dotnet restore "AufConnectApi.csproj"
+COPY ["AufConnectApi/AufConnectApi.csproj", "AufConnectApi/"]
+RUN dotnet restore "AufConnectApi/AufConnectApi.csproj"
 
 # Copy everything else
 COPY . .
 
 # Build the app
-RUN dotnet build "AufConnectApi.csproj" -c ${BUILD_CONFIGURATION} -o /app/build
+RUN dotnet build "AufConnectApi/AufConnectApi.csproj" -c ${BUILD_CONFIGURATION} -o /app/build
 
 FROM build AS publish
-RUN dotnet publish "AufConnectApi.csproj" -c ${BUILD_CONFIGURATION} -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "AufConnectApi/AufConnectApi.csproj" -c ${BUILD_CONFIGURATION} -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
