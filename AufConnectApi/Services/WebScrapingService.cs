@@ -1061,4 +1061,138 @@ public class WebScrapingService
 
         return ResourceType.Resources;
     }
+
+    public async Task<List<Service>> ScrapeServicesAsync(string url)
+    {
+        var services = new List<Service>();
+        
+        try
+        {
+            var html = await _httpClient.GetStringAsync(url);
+            var doc = new HtmlDocument();
+            doc.LoadHtml(html);
+
+            // Find all service sections - looking for columns with service cards
+            var serviceSections = doc.DocumentNode
+                .SelectNodes("//div[contains(@class,'sek-column') and contains(@class,'sek-level-has-shadow')]");
+
+            if (serviceSections != null)
+            {
+                foreach (var section in serviceSections)
+                {
+                    var service = ExtractServiceFromSection(section);
+                    if (service != null)
+                    {
+                        services.Add(service);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Error scraping services: {ex.Message}", ex);
+        }
+
+        return services;
+    }
+
+    private Service? ExtractServiceFromSection(HtmlNode section)
+    {
+        try
+        {
+            // Extract title from heading elements
+            var titleNode = section.SelectSingleNode(".//h4[@class='sek-heading']") ?? 
+                           section.SelectSingleNode(".//h5[@class='sek-heading']");
+            
+            if (titleNode == null) return null;
+            
+            var title = System.Web.HttpUtility.HtmlDecode(titleNode.InnerText)
+                .Replace("<strong>", "")
+                .Replace("</strong>", "")
+                .Replace("<br>", " ")
+                .Replace("<br />", " ")
+                .Replace("&nbsp;", " ")
+                .Trim();
+
+            if (string.IsNullOrEmpty(title)) return null;
+
+            // Extract image URL from img elements with data-sek-src attribute
+            var imageNode = section.SelectSingleNode(".//img[@data-sek-src]");
+            var imageUrl = imageNode?.GetAttributeValue("data-sek-src", "") ?? "";
+
+            // Extract date information from simple HTML modules
+            var dateNode = section.SelectSingleNode(".//div[@class='sek-module-inner']//p[contains(text(), 'Date d')]");
+            var dateString = "";
+            
+            if (dateNode != null)
+            {
+                var dateText = System.Web.HttpUtility.HtmlDecode(dateNode.InnerText)
+                    .Replace("<br>", "\n")
+                    .Replace("<br />", "\n")
+                    .Trim();
+                
+                // Extract the date lines and clean them up
+                var lines = dateText.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+                var dateLines = lines.Where(line => line.Contains("Date")).ToList();
+                dateString = string.Join(" | ", dateLines);
+            }
+
+            // If no date found in simple module, look for date in other text content
+            if (string.IsNullOrEmpty(dateString))
+            {
+                var allTextNodes = section.SelectNodes(".//p");
+                if (allTextNodes != null)
+                {
+                    foreach (var textNode in allTextNodes)
+                    {
+                        var text = textNode.InnerText;
+                        if (text.Contains("Date d'ouverture") || text.Contains("Date de clôture"))
+                        {
+                            dateString = System.Web.HttpUtility.HtmlDecode(text)
+                                .Replace("<br>", " | ")
+                                .Replace("<br />", " | ")
+                                .Trim();
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Clean up the title to remove extra text and formatting
+            title = CleanServiceTitle(title);
+
+            return new Service
+            {
+                Id = Guid.NewGuid(),
+                ImageUrl = imageUrl,
+                Title = title,
+                DateString = dateString
+            };
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    private string CleanServiceTitle(string title)
+    {
+        if (string.IsNullOrEmpty(title)) return "";
+
+        // Remove common HTML tags and entities
+        title = System.Text.RegularExpressions.Regex.Replace(title, @"<[^>]+>", " ");
+        title = System.Web.HttpUtility.HtmlDecode(title);
+        
+        // Remove excessive whitespace
+        title = System.Text.RegularExpressions.Regex.Replace(title, @"\s+", " ");
+        
+        // Remove common prefixes/suffixes that might not be needed
+        title = title.Replace("Appel à projets", "").Trim();
+        title = title.Replace("Appel à candidatures", "").Trim();
+        
+        // Handle year patterns and remove extra formatting
+        title = System.Text.RegularExpressions.Regex.Replace(title, @"\s{2,}", " ");
+        
+        return title.Trim();
+    }
 }

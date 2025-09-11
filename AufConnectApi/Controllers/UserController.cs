@@ -80,7 +80,7 @@ public class UserController : ControllerBase
                 PostalCode = user.PostalCode,
                 CreatedAt = user.CreatedAt,
                 UpdatedAt = user.UpdatedAt,
-                FavoriteProjectLinks = JsonSerializer.Deserialize<List<string>>(user.FavoriteProjectLinks) ?? new List<string>(),
+                FavoriteProjectIds = JsonSerializer.Deserialize<List<Guid>>(user.FavoriteProjectIds) ?? new List<Guid>(),
                 NotificationPreferences = new NotificationPreferencesDto
                 {
                     CallNotifications = user.NotificationPreferences.CallNotifications,
@@ -106,16 +106,16 @@ public class UserController : ControllerBase
                 return NotFound("User not found");
             }
 
-            var favoriteLinks = JsonSerializer.Deserialize<List<string>>(user.FavoriteProjectLinks) ?? new List<string>();
-            if (favoriteLinks.Count == 0)
+            var favoriteIds = JsonSerializer.Deserialize<List<Guid>>(user.FavoriteProjectIds) ?? new List<Guid>();
+            if (favoriteIds.Count == 0)
             {
                 return Ok(new List<Project>());
             }
 
-            var tasks = favoriteLinks.Select(link => _webScrapingService.ScrapeProjectDetailsAsync(link));
-            var results = await Task.WhenAll(tasks);
+            var projects = await _context.Projects
+                .Where(p => favoriteIds.Contains(p.Id))
+                .ToListAsync();
 
-            var projects = results.Where(p => p != null).Cast<Project>().ToList();
             return Ok(projects);
         }
         catch (Exception ex)
@@ -164,7 +164,7 @@ public class UserController : ControllerBase
                 PostalCode = user.PostalCode,
                 CreatedAt = user.CreatedAt,
                 UpdatedAt = user.UpdatedAt,
-                FavoriteProjectLinks = JsonSerializer.Deserialize<List<string>>(user.FavoriteProjectLinks) ?? new List<string>(),
+                FavoriteProjectIds = JsonSerializer.Deserialize<List<Guid>>(user.FavoriteProjectIds) ?? new List<Guid>(),
                 NotificationPreferences = new NotificationPreferencesDto
                 {
                     CallNotifications = user.NotificationPreferences.CallNotifications,
@@ -248,7 +248,7 @@ public class UserController : ControllerBase
             PostalCode = user.PostalCode,
             CreatedAt = user.CreatedAt,
             UpdatedAt = user.UpdatedAt,
-            FavoriteProjectLinks = JsonSerializer.Deserialize<List<string>>(user.FavoriteProjectLinks) ?? new List<string>(),
+            FavoriteProjectIds = JsonSerializer.Deserialize<List<Guid>>(user.FavoriteProjectIds) ?? new List<Guid>(),
             NotificationPreferences = new NotificationPreferencesDto
             {
                 CallNotifications = user.NotificationPreferences.CallNotifications,
@@ -273,25 +273,32 @@ public class UserController : ControllerBase
                 return NotFound("User not found");
             }
 
-            if (string.IsNullOrEmpty(request.ProjectLink))
+            if (request.ProjectId == Guid.Empty)
             {
-                return BadRequest("Project link is required");
+                return BadRequest("Project ID is required");
             }
 
-            // Decode JSON string to List<string>
-            var favoriteLinks = JsonSerializer.Deserialize<List<string>>(user.FavoriteProjectLinks) ?? new List<string>();
+            // Check if project exists
+            var projectExists = await _context.Projects.AnyAsync(p => p.Id == request.ProjectId);
+            if (!projectExists)
+            {
+                return NotFound("Project not found");
+            }
 
-            // Check if the link is already in favorites
-            if (favoriteLinks.Contains(request.ProjectLink))
+            // Decode JSON string to List<Guid>
+            var favoriteIds = JsonSerializer.Deserialize<List<Guid>>(user.FavoriteProjectIds) ?? new List<Guid>();
+
+            // Check if the project is already in favorites
+            if (favoriteIds.Contains(request.ProjectId))
             {
                 return BadRequest("Project is already in favorites");
             }
 
-            // Add the project link to favorites
-            favoriteLinks.Add(request.ProjectLink);
+            // Add the project ID to favorites
+            favoriteIds.Add(request.ProjectId);
             
             // Encode back to JSON string
-            user.FavoriteProjectLinks = JsonSerializer.Serialize(favoriteLinks);
+            user.FavoriteProjectIds = JsonSerializer.Serialize(favoriteIds);
             user.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
@@ -316,24 +323,21 @@ public class UserController : ControllerBase
                 return NotFound("User not found");
             }
 
-            if (string.IsNullOrEmpty(request.ProjectLink))
+            if (request.ProjectId == Guid.Empty)
             {
-                return BadRequest("Project link is required");
+                return BadRequest("Project ID is required");
             }
 
-            // Decode JSON string to List<string>
-            var favoriteLinks = JsonSerializer.Deserialize<List<string>>(user.FavoriteProjectLinks) ?? new List<string>();
+            var favoriteIds = JsonSerializer.Deserialize<List<Guid>>(user.FavoriteProjectIds) ?? new List<Guid>();
 
-            // Remove the project link from favorites
-            bool removed = favoriteLinks.Remove(request.ProjectLink);
+            bool removed = favoriteIds.Remove(request.ProjectId);
             
             if (!removed)
             {
                 return NotFound("Project not found in favorites");
             }
 
-            // Encode back to JSON string
-            user.FavoriteProjectLinks = JsonSerializer.Serialize(favoriteLinks);
+            user.FavoriteProjectIds = JsonSerializer.Serialize(favoriteIds);
             user.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
@@ -346,7 +350,7 @@ public class UserController : ControllerBase
     }
 
     [HttpGet("{userId}/favorites")]
-    public async Task<ActionResult<List<string>>> GetFavorites(Guid userId)
+    public async Task<ActionResult<List<Guid>>> GetFavorites(Guid userId)
     {
         try
         {
@@ -357,10 +361,9 @@ public class UserController : ControllerBase
                 return NotFound("User not found");
             }
 
-            // Decode JSON string to List<string> for the response
-            var favoriteLinks = JsonSerializer.Deserialize<List<string>>(user.FavoriteProjectLinks) ?? new List<string>();
+            var favoriteIds = JsonSerializer.Deserialize<List<Guid>>(user.FavoriteProjectIds) ?? new List<Guid>();
             
-            return Ok(favoriteLinks);
+            return Ok(favoriteIds);
         }
         catch (Exception ex)
         {
@@ -407,16 +410,85 @@ public class UserController : ControllerBase
             return StatusCode(500, $"Error setting FCM token: {ex.Message}");
         }
     }
+
+    [HttpPut("reset-password")]
+    public async Task<ActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+    {
+        try
+        {
+            // Validate that either userId or email is provided
+            if (request.UserId == Guid.Empty && string.IsNullOrEmpty(request.Email))
+            {
+                return BadRequest("Either User ID or Email is required");
+            }
+
+            if (string.IsNullOrEmpty(request.OldPassword))
+            {
+                return BadRequest("Old password is required");
+            }
+
+            if (string.IsNullOrEmpty(request.NewPassword))
+            {
+                return BadRequest("New password is required");
+            }
+
+            if (request.NewPassword.Length < 6)
+            {
+                return BadRequest("New password must be at least 6 characters long");
+            }
+
+            // Find the user by either ID or email
+            User? user = null;
+            
+            if (request.UserId != Guid.Empty)
+            {
+                user = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.UserId);
+            }
+            else if (!string.IsNullOrEmpty(request.Email))
+            {
+                user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+            }
+            
+            if (user == null)
+            {
+                return NotFound("User not found");
+            }
+
+            // Verify old password
+            if (!BCrypt.Net.BCrypt.Verify(request.OldPassword, user.PasswordHash))
+            {
+                return BadRequest("Current password is incorrect");
+            }
+
+            // Check if new password is different from old password
+            if (BCrypt.Net.BCrypt.Verify(request.NewPassword, user.PasswordHash))
+            {
+                return BadRequest("New password must be different from the current password");
+            }
+
+            // Hash the new password and update
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Password reset successfully" });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error resetting password: {ex.Message}");
+        }
+    }
 }
 
 public class AddToFavoritesRequest
 {
-    public string ProjectLink { get; set; } = string.Empty;
+    public Guid ProjectId { get; set; }
 }
 
 public class RemoveFromFavoritesRequest
 {
-    public string ProjectLink { get; set; } = string.Empty;
+    public Guid ProjectId { get; set; }
 }
 
 public class SetFcmTokenRequest
@@ -475,7 +547,7 @@ public class UserResponse
     public string? PostalCode { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
-    public List<string> FavoriteProjectLinks { get; set; } = new List<string>();
+    public List<Guid> FavoriteProjectIds { get; set; } = new List<Guid>();
     public NotificationPreferencesDto NotificationPreferences { get; set; } = null!;
 }
 
@@ -487,4 +559,12 @@ public class NotificationPreferencesDto
     public bool PasswordChangeNotifications { get; set; }
     public bool EventsNotifications { get; set; }
     public bool NewsletterNotifications { get; set; }
+}
+
+public class ResetPasswordRequest
+{
+    public Guid UserId { get; set; }
+    public string? Email { get; set; }
+    public string OldPassword { get; set; } = string.Empty;
+    public string NewPassword { get; set; } = string.Empty;
 }

@@ -34,7 +34,7 @@ public class User
     [Required]
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     
-    public string FavoriteProjectLinks { get; set; } = "[]";
+    public string FavoriteProjectIds { get; set; } = "[]";
     
     public NotificationPreferences NotificationPreferences { get; set; } = new NotificationPreferences();
 }

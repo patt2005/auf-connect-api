@@ -144,7 +144,11 @@ public class ResourcesController : ControllerBase
                 return BadRequest("No resources found to scrape.");
             }
 
-            // Add scraped resources to database
+            // Get the current count of resources to determine the starting position for new resources
+            var currentResourceCount = await _context.Resources.CountAsync();
+            var addedCount = 0;
+
+            // Add scraped resources to database at the end of the existing list
             foreach (var resource in scrapedResources)
             {
                 // Check if resource already exists by link to avoid duplicates
@@ -154,13 +158,17 @@ public class ResourcesController : ControllerBase
                 if (!existingResource)
                 {
                     _context.Resources.Add(resource);
+                    addedCount++;
                 }
             }
 
             await _context.SaveChangesAsync();
 
             return Ok(new { 
-                Message = $"Successfully scraped and saved {scrapedResources.Count} resources", 
+                Message = $"Successfully scraped and saved {addedCount} new resources (out of {scrapedResources.Count} found)",
+                TotalResourcesBeforeScrap = currentResourceCount,
+                TotalResourcesAfterScrap = currentResourceCount + addedCount,
+                NewResourcesAdded = addedCount,
                 Resources = scrapedResources 
             });
         }

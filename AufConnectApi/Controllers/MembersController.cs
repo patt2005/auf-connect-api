@@ -129,10 +129,11 @@ public class MembersController : ControllerBase
                 return BadRequest("No members found to scrape.");
             }
 
-            // Clear existing members if needed (optional)
-            // _context.Members.RemoveRange(_context.Members);
-            
-            // Add scraped members to database
+            // Get the current count of members to determine the starting position for new members
+            var currentMemberCount = await _context.Members.CountAsync();
+            var addedCount = 0;
+
+            // Add scraped members to database at the end of the existing list
             foreach (var member in scrapedMembers)
             {
                 // Check if member already exists by name to avoid duplicates
@@ -142,13 +143,17 @@ public class MembersController : ControllerBase
                 if (existingMember == null)
                 {
                     _context.Members.Add(member);
+                    addedCount++;
                 }
             }
 
             await _context.SaveChangesAsync();
 
             return Ok(new { 
-                Message = $"Successfully scraped and saved {scrapedMembers.Count} members", 
+                Message = $"Successfully scraped and saved {addedCount} new members (out of {scrapedMembers.Count} found)",
+                TotalMembersBeforeScrap = currentMemberCount,
+                TotalMembersAfterScrap = currentMemberCount + addedCount,
+                NewMembersAdded = addedCount,
                 Members = scrapedMembers 
             });
         }
