@@ -193,6 +193,11 @@ public class WebScrapingService
             // Extract title from h1.entry-title
             var titleNode = doc.DocumentNode.SelectSingleNode("//h1[@class='entry-title']");
             var title = titleNode?.InnerText?.Trim();
+            if (!string.IsNullOrEmpty(title))
+            {
+                title = System.Web.HttpUtility.HtmlDecode(title);
+                title = System.Web.HttpUtility.HtmlDecode(title); // Second pass for nested entities
+            }
             if (string.IsNullOrEmpty(title))
                 return null;
 
@@ -211,6 +216,11 @@ public class WebScrapingService
             // Extract region from sidebar
             var regionNode = doc.DocumentNode.SelectSingleNode("//div[@class='block block-tags']//a[contains(@class,'lnk-region')]");
             var region = regionNode?.InnerText?.Trim()?.Replace("+", "")?.Trim();
+            if (!string.IsNullOrEmpty(region))
+            {
+                region = System.Web.HttpUtility.HtmlDecode(region);
+                region = System.Web.HttpUtility.HtmlDecode(region); // Second pass
+            }
 
             return new Project
             {
@@ -246,22 +256,47 @@ public class WebScrapingService
 
             var titleNode = doc.DocumentNode.SelectSingleNode("//h1[@class='entry-title']");
             var memberName = titleNode?.InnerText?.Trim();
+            if (!string.IsNullOrEmpty(memberName))
+            {
+                memberName = System.Web.HttpUtility.HtmlDecode(memberName);
+                memberName = System.Web.HttpUtility.HtmlDecode(memberName); // Second pass
+            }
             if (string.IsNullOrEmpty(memberName))
                 return null;
 
             var descriptionNode = doc.DocumentNode.SelectSingleNode("//div[@class='entry-content'][1]//p");
             var description = descriptionNode?.InnerText?.Trim() ?? "";
+            if (!string.IsNullOrEmpty(description))
+            {
+                description = System.Web.HttpUtility.HtmlDecode(description);
+                description = System.Web.HttpUtility.HtmlDecode(description); // Second pass
+            }
 
             var historyNode = doc.DocumentNode.SelectSingleNode("//div[@class='entry-content entry-history']//p");
             var background = historyNode?.InnerText?.Trim() ?? "";
+            if (!string.IsNullOrEmpty(background))
+            {
+                background = System.Web.HttpUtility.HtmlDecode(background);
+                background = System.Web.HttpUtility.HtmlDecode(background); // Second pass
+            }
 
             var contactsBlock = doc.DocumentNode.SelectSingleNode("//div[@class='block block-contacts']");
 
             var contactNameNode = contactsBlock?.SelectSingleNode(".//div[@class='name'][2]//strong");
             var contactName = contactNameNode?.InnerText?.Trim() ?? "";
+            if (!string.IsNullOrEmpty(contactName))
+            {
+                contactName = System.Web.HttpUtility.HtmlDecode(contactName);
+                contactName = System.Web.HttpUtility.HtmlDecode(contactName); // Second pass
+            }
 
             var contactTitleNode = contactsBlock?.SelectSingleNode(".//div[@class='occupation']");
             var contactTitle = contactTitleNode?.InnerText?.Trim() ?? "";
+            if (!string.IsNullOrEmpty(contactTitle))
+            {
+                contactTitle = System.Web.HttpUtility.HtmlDecode(contactTitle);
+                contactTitle = System.Web.HttpUtility.HtmlDecode(contactTitle); // Second pass
+            }
 
             var statusNode = contactsBlock?.SelectSingleNode(".//div[@class='status']");
             var statutoryType = "";
@@ -273,20 +308,38 @@ public class WebScrapingService
                 
                 var statutoryMatch = System.Text.RegularExpressions.Regex.Match(statusText, @"Type statutaire\s*:\s*([^\r\n]+)");
                 if (statutoryMatch.Success)
+                {
                     statutoryType = statutoryMatch.Groups[1].Value.Trim();
+                    statutoryType = System.Web.HttpUtility.HtmlDecode(statutoryType);
+                    statutoryType = System.Web.HttpUtility.HtmlDecode(statutoryType); // Second pass
+                }
 
                 var universityMatch = System.Text.RegularExpressions.Regex.Match(statusText, @"Type universitaire\s*:\s*([^\r\n]+)");
                 if (universityMatch.Success)
+                {
                     universityType = universityMatch.Groups[1].Value.Trim();
+                    universityType = System.Web.HttpUtility.HtmlDecode(universityType);
+                    universityType = System.Web.HttpUtility.HtmlDecode(universityType); // Second pass
+                }
             }
 
             // Extract address
             var addressNode = contactsBlock?.SelectSingleNode(".//address[@class='address']");
             var address = addressNode?.InnerText?.Trim() ?? "";
+            if (!string.IsNullOrEmpty(address))
+            {
+                address = System.Web.HttpUtility.HtmlDecode(address);
+                address = System.Web.HttpUtility.HtmlDecode(address); // Second pass
+            }
 
             // Extract phone
             var phoneNode = contactsBlock?.SelectSingleNode(".//div[@class='tel']");
             var phone = phoneNode?.InnerText?.Replace("Téléphone :", "").Trim() ?? "";
+            if (!string.IsNullOrEmpty(phone))
+            {
+                phone = System.Web.HttpUtility.HtmlDecode(phone);
+                phone = System.Web.HttpUtility.HtmlDecode(phone); // Second pass
+            }
 
             // Extract website
             var websiteNode = contactsBlock?.SelectSingleNode(".//div[@class='website']//a");
@@ -295,6 +348,11 @@ public class WebScrapingService
             // Extract region from tags block
             var regionNode = doc.DocumentNode.SelectSingleNode("//div[@class='block block-tags']//a[contains(@class,'lnk-region')]");
             var region = regionNode?.InnerText?.Trim()?.Replace("+", "")?.Replace("AUF - ", "").Trim() ?? "";
+            if (!string.IsNullOrEmpty(region))
+            {
+                region = System.Web.HttpUtility.HtmlDecode(region);
+                region = System.Web.HttpUtility.HtmlDecode(region); // Second pass
+            }
 
             // Extract founded year from background/history
             var foundedYear = "";
@@ -339,13 +397,23 @@ public class WebScrapingService
             // Extract title
             var titleNode = doc.DocumentNode.SelectSingleNode("//h2[@class='Font-Montserrat font-weight-bold']//span[@class='field field--name-title field--type-string field--label-hidden']");
             var title = titleNode?.InnerText?.Trim();
+            if (!string.IsNullOrEmpty(title))
+            {
+                title = System.Web.HttpUtility.HtmlDecode(title);
+                title = System.Web.HttpUtility.HtmlDecode(title); // Second pass
+            }
             if (string.IsNullOrEmpty(title))
                 return null;
 
             // Extract date and event type
             var dateEventTypeNode = doc.DocumentNode.SelectSingleNode("//span[@class='date text-green font-weight-bold']");
             var dateEventText = dateEventTypeNode?.InnerText?.Trim() ?? "";
-            
+            if (!string.IsNullOrEmpty(dateEventText))
+            {
+                dateEventText = System.Web.HttpUtility.HtmlDecode(dateEventText);
+                dateEventText = System.Web.HttpUtility.HtmlDecode(dateEventText); // Second pass
+            }
+
             var date = "";
             var eventType = "";
             if (!string.IsNullOrEmpty(dateEventText))
@@ -400,10 +468,20 @@ public class WebScrapingService
             // Extract theme/description from the first section
             var themeNode = doc.DocumentNode.SelectSingleNode("//div[@class='item'][1]//p");
             var theme = themeNode?.InnerText?.Trim() ?? "";
+            if (!string.IsNullOrEmpty(theme))
+            {
+                theme = System.Web.HttpUtility.HtmlDecode(theme);
+                theme = System.Web.HttpUtility.HtmlDecode(theme); // Second pass
+            }
 
             // Extract hashtags
             var hashtagNode = doc.DocumentNode.SelectSingleNode("//div[@class='field field--name-field-hashtag-de-l-evenement field--type-string field--label-visually_hidden']//div[@class='field__item']");
             var hashtags = hashtagNode?.InnerText?.Trim() ?? "";
+            if (!string.IsNullOrEmpty(hashtags))
+            {
+                hashtags = System.Web.HttpUtility.HtmlDecode(hashtags);
+                hashtags = System.Web.HttpUtility.HtmlDecode(hashtags); // Second pass
+            }
 
             // Extract event sections from carousel
             var sections = new List<EventSection>();
@@ -418,12 +496,33 @@ public class WebScrapingService
 
                     if (sectionTitleNode != null)
                     {
+                        var sectionTitle = sectionTitleNode.InnerText?.Trim() ?? "";
+                        if (!string.IsNullOrEmpty(sectionTitle))
+                        {
+                            sectionTitle = System.Web.HttpUtility.HtmlDecode(sectionTitle);
+                            sectionTitle = System.Web.HttpUtility.HtmlDecode(sectionTitle); // Second pass
+                        }
+
+                        var sectionDesc = sectionDescNode?.InnerText?.Trim() ?? "";
+                        if (!string.IsNullOrEmpty(sectionDesc))
+                        {
+                            sectionDesc = System.Web.HttpUtility.HtmlDecode(sectionDesc);
+                            sectionDesc = System.Web.HttpUtility.HtmlDecode(sectionDesc); // Second pass
+                        }
+
+                        var sectionLinkText = sectionLinkNode?.InnerText?.Replace("<i class=\"fa fa-long-arrow-right pl-2\"></i>", "").Trim() ?? "";
+                        if (!string.IsNullOrEmpty(sectionLinkText))
+                        {
+                            sectionLinkText = System.Web.HttpUtility.HtmlDecode(sectionLinkText);
+                            sectionLinkText = System.Web.HttpUtility.HtmlDecode(sectionLinkText); // Second pass
+                        }
+
                         var section = new EventSection
                         {
-                            Title = sectionTitleNode.InnerText?.Trim() ?? "",
-                            Description = sectionDescNode?.InnerText?.Trim() ?? "",
+                            Title = sectionTitle,
+                            Description = sectionDesc,
                             LinkUrl = sectionLinkNode?.GetAttributeValue("href", "") ?? "",
-                            LinkText = sectionLinkNode?.InnerText?.Replace("<i class=\"fa fa-long-arrow-right pl-2\"></i>", "").Trim() ?? ""
+                            LinkText = sectionLinkText
                         };
 
                         // Convert relative URLs to absolute
@@ -471,7 +570,13 @@ public class WebScrapingService
         try
         {
             var titleNode = section.SelectSingleNode(".//h3[@class='title']");
-            var title = titleNode?.InnerText?.Trim();
+            if (titleNode == null)
+                return null;
+
+            // Decode HTML entities properly for title
+            var title = System.Web.HttpUtility.HtmlDecode(titleNode.InnerText?.Trim());
+            title = System.Web.HttpUtility.HtmlDecode(title); // Second pass for nested entities
+
             if (string.IsNullOrEmpty(title))
                 return null;
 
@@ -480,9 +585,21 @@ public class WebScrapingService
 
             var regionNode = section.SelectSingleNode(".//div[@class='regions']//a[@class='lnk-region']");
             var region = regionNode?.InnerText?.Trim()?.Replace("+", "")?.Trim();
+            if (!string.IsNullOrEmpty(region))
+            {
+                region = System.Web.HttpUtility.HtmlDecode(region);
+                region = System.Web.HttpUtility.HtmlDecode(region); // Second pass
+            }
 
             var descriptionNode = section.SelectSingleNode(".//div[@class='text']");
             var description = descriptionNode?.InnerText?.Trim();
+            if (!string.IsNullOrEmpty(description))
+            {
+                description = System.Web.HttpUtility.HtmlDecode(description);
+                description = System.Web.HttpUtility.HtmlDecode(description); // Second pass
+                // Clean up whitespace
+                description = System.Text.RegularExpressions.Regex.Replace(description, @"\s+", " ").Trim();
+            }
 
             var imageNode = section.SelectSingleNode(".//img");
             var imageUrl = imageNode?.GetAttributeValue("src", "");
@@ -509,6 +626,11 @@ public class WebScrapingService
         {
             var titleNode = section.SelectSingleNode(".//h3[@class='title']");
             var title = titleNode?.InnerText?.Trim();
+            if (!string.IsNullOrEmpty(title))
+            {
+                title = System.Web.HttpUtility.HtmlDecode(title);
+                title = System.Web.HttpUtility.HtmlDecode(title); // Second pass for nested entities
+            }
             if (string.IsNullOrEmpty(title))
                 return null;
 
@@ -523,9 +645,19 @@ public class WebScrapingService
 
             var addressNode = section.SelectSingleNode(".//span[@class='address']");
             var address = addressNode?.InnerText?.Trim();
+            if (!string.IsNullOrEmpty(address))
+            {
+                address = System.Web.HttpUtility.HtmlDecode(address);
+                address = System.Web.HttpUtility.HtmlDecode(address); // Second pass
+            }
 
             var regionNode = section.SelectSingleNode(".//div[@class='regions']//a[@class='lnk-region']");
             var region = regionNode?.InnerText?.Trim()?.Replace("+", "")?.Trim();
+            if (!string.IsNullOrEmpty(region))
+            {
+                region = System.Web.HttpUtility.HtmlDecode(region);
+                region = System.Web.HttpUtility.HtmlDecode(region); // Second pass
+            }
 
             return new PreviewMember
             {
@@ -548,6 +680,11 @@ public class WebScrapingService
         {
             var captionNode = section.SelectSingleNode(".//p[@class='wp-caption-text']");
             var name = captionNode?.InnerText?.Trim();
+            if (!string.IsNullOrEmpty(name))
+            {
+                name = System.Web.HttpUtility.HtmlDecode(name);
+                name = System.Web.HttpUtility.HtmlDecode(name); // Second pass for nested entities
+            }
             if (string.IsNullOrEmpty(name))
                 return null;
 
@@ -557,6 +694,11 @@ public class WebScrapingService
             var imageNode = section.SelectSingleNode(".//img");
             var imageUrl = imageNode?.GetAttributeValue("src", "");
             var imageAlt = imageNode?.GetAttributeValue("alt", "");
+            if (!string.IsNullOrEmpty(imageAlt))
+            {
+                imageAlt = System.Web.HttpUtility.HtmlDecode(imageAlt);
+                imageAlt = System.Web.HttpUtility.HtmlDecode(imageAlt); // Second pass
+            }
 
             return new PreviewPartner
             {
@@ -619,12 +761,22 @@ public class WebScrapingService
         {
             var titleNode = section.SelectSingleNode(".//h1[@class='Libre-bold text-white pt-2']");
             var title = titleNode?.InnerText?.Trim();
+            if (!string.IsNullOrEmpty(title))
+            {
+                title = System.Web.HttpUtility.HtmlDecode(title);
+                title = System.Web.HttpUtility.HtmlDecode(title); // Second pass for nested entities
+            }
             if (string.IsNullOrEmpty(title))
                 return null;
 
             // Extract date information
             var dateSpan = section.SelectSingleNode(".//span[contains(text(),'du ') or contains(text(),'le ')]");
             var dateText = dateSpan?.InnerText?.Trim() ?? "";
+            if (!string.IsNullOrEmpty(dateText))
+            {
+                dateText = System.Web.HttpUtility.HtmlDecode(dateText);
+                dateText = System.Web.HttpUtility.HtmlDecode(dateText); // Second pass
+            }
 
             // Extract city/location information
             var locationSpans = section.SelectNodes(".//p[img[@src='/themes/francophonie/images/map-marker.png']]/span");
@@ -632,6 +784,11 @@ public class WebScrapingService
             if (locationSpans != null && locationSpans.Count > 0)
             {
                 city = locationSpans.LastOrDefault()?.InnerText?.Trim() ?? "";
+                if (!string.IsNullOrEmpty(city))
+                {
+                    city = System.Web.HttpUtility.HtmlDecode(city);
+                    city = System.Web.HttpUtility.HtmlDecode(city); // Second pass
+                }
             }
 
             // Extract link
@@ -669,7 +826,15 @@ public class WebScrapingService
                     var listItems = nextSibling.SelectNodes(".//li");
                     if (listItems != null)
                     {
-                        objectives.AddRange(listItems.Select(li => li.InnerText?.Trim()).Where(t => !string.IsNullOrEmpty(t)));
+                        objectives.AddRange(listItems.Select(li => {
+                            var text = li.InnerText?.Trim();
+                            if (!string.IsNullOrEmpty(text))
+                            {
+                                text = System.Web.HttpUtility.HtmlDecode(text);
+                                text = System.Web.HttpUtility.HtmlDecode(text); // Second pass
+                            }
+                            return text;
+                        }).Where(t => !string.IsNullOrEmpty(t)));
                     }
                     break;
                 }
@@ -682,7 +847,15 @@ public class WebScrapingService
         var paragraphs = contentNode.SelectNodes(".//p[not(contains(text(), 'PARTENAIRES')) and not(contains(text(), 'BUDGET'))]");
         if (paragraphs != null && paragraphs.Count > 0)
         {
-            return string.Join(" ", paragraphs.Take(2).Select(p => p.InnerText?.Trim()).Where(t => !string.IsNullOrEmpty(t)));
+            return string.Join(" ", paragraphs.Take(2).Select(p => {
+                var text = p.InnerText?.Trim();
+                if (!string.IsNullOrEmpty(text))
+                {
+                    text = System.Web.HttpUtility.HtmlDecode(text);
+                    text = System.Web.HttpUtility.HtmlDecode(text); // Second pass
+                }
+                return text;
+            }).Where(t => !string.IsNullOrEmpty(t)));
         }
 
         return "";
@@ -704,7 +877,15 @@ public class WebScrapingService
                     var listItems = nextSibling.SelectNodes(".//li");
                     if (listItems != null)
                     {
-                        targets.AddRange(listItems.Select(li => li.InnerText?.Trim()).Where(t => !string.IsNullOrEmpty(t)));
+                        targets.AddRange(listItems.Select(li => {
+                            var text = li.InnerText?.Trim();
+                            if (!string.IsNullOrEmpty(text))
+                            {
+                                text = System.Web.HttpUtility.HtmlDecode(text);
+                                text = System.Web.HttpUtility.HtmlDecode(text); // Second pass
+                            }
+                            return text;
+                        }).Where(t => !string.IsNullOrEmpty(t)));
                     }
                     break;
                 }
@@ -725,7 +906,11 @@ public class WebScrapingService
         {
             var budgetText = budgetSection.NextSibling?.InnerText?.Trim();
             if (!string.IsNullOrEmpty(budgetText))
+            {
+                budgetText = System.Web.HttpUtility.HtmlDecode(budgetText);
+                budgetText = System.Web.HttpUtility.HtmlDecode(budgetText); // Second pass
                 return budgetText;
+            }
         }
 
         // Look for euro symbol or budget mentions
@@ -734,7 +919,9 @@ public class WebScrapingService
         if (euroIndex > 0)
         {
             var budgetMatch = allText.Substring(Math.Max(0, euroIndex - 20), Math.Min(40, allText.Length - Math.Max(0, euroIndex - 20)));
-            return budgetMatch.Trim();
+            budgetMatch = System.Web.HttpUtility.HtmlDecode(budgetMatch.Trim());
+            budgetMatch = System.Web.HttpUtility.HtmlDecode(budgetMatch); // Second pass
+            return budgetMatch;
         }
 
         return "";
@@ -747,7 +934,13 @@ public class WebScrapingService
         var periodSection = contentNode.SelectSingleNode(".//li[contains(text(), 'Durée')]");
         if (periodSection != null)
         {
-            return periodSection.InnerText?.Replace("Durée", "").Trim().TrimStart(':').Trim() ?? "";
+            var period = periodSection.InnerText?.Replace("Durée", "").Trim().TrimStart(':').Trim() ?? "";
+            if (!string.IsNullOrEmpty(period))
+            {
+                period = System.Web.HttpUtility.HtmlDecode(period);
+                period = System.Web.HttpUtility.HtmlDecode(period); // Second pass
+            }
+            return period;
         }
 
         return "";
@@ -770,14 +963,30 @@ public class WebScrapingService
                     var listItems = nextSibling.SelectNodes(".//li");
                     if (listItems != null)
                     {
-                        partners.AddRange(listItems.Select(li => li.InnerText?.Trim()).Where(t => !string.IsNullOrEmpty(t)));
+                        partners.AddRange(listItems.Select(li => {
+                            var text = li.InnerText?.Trim();
+                            if (!string.IsNullOrEmpty(text))
+                            {
+                                text = System.Web.HttpUtility.HtmlDecode(text);
+                                text = System.Web.HttpUtility.HtmlDecode(text); // Second pass
+                            }
+                            return text;
+                        }).Where(t => !string.IsNullOrEmpty(t)));
                     }
                     
                     // Look for nested lists
                     var nestedLists = nextSibling.SelectNodes(".//ul//li");
                     if (nestedLists != null)
                     {
-                        partners.AddRange(nestedLists.Select(li => li.InnerText?.Trim()).Where(t => !string.IsNullOrEmpty(t)));
+                        partners.AddRange(nestedLists.Select(li => {
+                            var text = li.InnerText?.Trim();
+                            if (!string.IsNullOrEmpty(text))
+                            {
+                                text = System.Web.HttpUtility.HtmlDecode(text);
+                                text = System.Web.HttpUtility.HtmlDecode(text); // Second pass
+                            }
+                            return text;
+                        }).Where(t => !string.IsNullOrEmpty(t)));
                     }
                     break;
                 }
@@ -798,6 +1007,8 @@ public class WebScrapingService
             var roleText = aufRoleSection.NextSibling?.InnerText?.Trim();
             if (!string.IsNullOrEmpty(roleText))
             {
+                roleText = System.Web.HttpUtility.HtmlDecode(roleText);
+                roleText = System.Web.HttpUtility.HtmlDecode(roleText); // Second pass
                 return new List<string> { roleText };
             }
         }
@@ -1101,18 +1312,23 @@ public class WebScrapingService
         try
         {
             // Extract title from heading elements
-            var titleNode = section.SelectSingleNode(".//h4[@class='sek-heading']") ?? 
+            var titleNode = section.SelectSingleNode(".//h4[@class='sek-heading']") ??
                            section.SelectSingleNode(".//h5[@class='sek-heading']");
-            
+
             if (titleNode == null) return null;
-            
-            var title = System.Web.HttpUtility.HtmlDecode(titleNode.InnerText)
-                .Replace("<strong>", "")
-                .Replace("</strong>", "")
-                .Replace("<br>", " ")
-                .Replace("<br />", " ")
-                .Replace("&nbsp;", " ")
-                .Trim();
+
+            // Get inner HTML first to preserve structure, then decode
+            var titleHtml = titleNode.InnerHtml;
+
+            // Remove HTML tags
+            titleHtml = System.Text.RegularExpressions.Regex.Replace(titleHtml, @"<[^>]+>", " ");
+
+            // Decode HTML entities multiple times to handle nested encoding
+            var title = System.Web.HttpUtility.HtmlDecode(titleHtml);
+            title = System.Web.HttpUtility.HtmlDecode(title); // Second pass for nested entities
+
+            // Clean up whitespace
+            title = System.Text.RegularExpressions.Regex.Replace(title, @"\s+", " ").Trim();
 
             if (string.IsNullOrEmpty(title)) return null;
 
@@ -1123,17 +1339,20 @@ public class WebScrapingService
             // Extract date information from simple HTML modules
             var dateNode = section.SelectSingleNode(".//div[@class='sek-module-inner']//p[contains(text(), 'Date d')]");
             var dateString = "";
-            
+
             if (dateNode != null)
             {
-                var dateText = System.Web.HttpUtility.HtmlDecode(dateNode.InnerText)
-                    .Replace("<br>", "\n")
-                    .Replace("<br />", "\n")
-                    .Trim();
-                
+                // Get the HTML content first, then clean and decode
+                var dateHtml = dateNode.InnerHtml;
+                dateHtml = System.Text.RegularExpressions.Regex.Replace(dateHtml, @"<br\s*/?>", "\n");
+                dateHtml = System.Text.RegularExpressions.Regex.Replace(dateHtml, @"<[^>]+>", "");
+
+                var dateText = System.Web.HttpUtility.HtmlDecode(dateHtml);
+                dateText = System.Web.HttpUtility.HtmlDecode(dateText); // Second pass
+
                 // Extract the date lines and clean them up
                 var lines = dateText.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
-                var dateLines = lines.Where(line => line.Contains("Date")).ToList();
+                var dateLines = lines.Where(line => line.Contains("Date")).Select(line => line.Trim()).ToList();
                 dateString = string.Join(" | ", dateLines);
             }
 
@@ -1148,10 +1367,10 @@ public class WebScrapingService
                         var text = textNode.InnerText;
                         if (text.Contains("Date d'ouverture") || text.Contains("Date de clôture"))
                         {
-                            dateString = System.Web.HttpUtility.HtmlDecode(text)
-                                .Replace("<br>", " | ")
-                                .Replace("<br />", " | ")
-                                .Trim();
+                            // Decode multiple times for nested entities
+                            dateString = System.Web.HttpUtility.HtmlDecode(text);
+                            dateString = System.Web.HttpUtility.HtmlDecode(dateString);
+                            dateString = dateString.Replace("\n", " | ").Replace("\r", "").Trim();
                             break;
                         }
                     }
@@ -1161,12 +1380,21 @@ public class WebScrapingService
             // Clean up the title to remove extra text and formatting
             title = CleanServiceTitle(title);
 
+            // Check if the service is closed by looking for "Appel clos" text in the section
+            var isClosed = false;
+            var allText = section.InnerText;
+            if (!string.IsNullOrEmpty(allText))
+            {
+                isClosed = allText.Contains("Appel clos", StringComparison.OrdinalIgnoreCase);
+            }
+
             return new Service
             {
                 Id = Guid.NewGuid(),
                 ImageUrl = imageUrl,
                 Title = title,
-                DateString = dateString
+                DateString = dateString,
+                IsClosed = isClosed
             };
         }
         catch (Exception)
@@ -1179,20 +1407,20 @@ public class WebScrapingService
     {
         if (string.IsNullOrEmpty(title)) return "";
 
-        // Remove common HTML tags and entities
-        title = System.Text.RegularExpressions.Regex.Replace(title, @"<[^>]+>", " ");
-        title = System.Web.HttpUtility.HtmlDecode(title);
-        
-        // Remove excessive whitespace
+        // The title has already been decoded in ExtractServiceFromSection,
+        // so we just need to clean up the formatting
+
+        // Remove excessive whitespace and normalize spaces
         title = System.Text.RegularExpressions.Regex.Replace(title, @"\s+", " ");
-        
-        // Remove common prefixes/suffixes that might not be needed
-        title = title.Replace("Appel à projets", "").Trim();
-        title = title.Replace("Appel à candidatures", "").Trim();
-        
-        // Handle year patterns and remove extra formatting
+
+        // Fix common quote issues
+        title = title.Replace("«", "« ")
+            .Replace("»", " »")
+            .Replace("  ", " ");
+
+        // Ensure proper spacing around quotes
         title = System.Text.RegularExpressions.Regex.Replace(title, @"\s{2,}", " ");
-        
+
         return title.Trim();
     }
 }

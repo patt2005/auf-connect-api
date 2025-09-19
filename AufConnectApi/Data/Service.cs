@@ -15,4 +15,7 @@ public class Service
     
     [Required]
     public string DateString { get; set; } = string.Empty;
+
+    [Required]
+    public bool IsClosed { get; set; } = false;
 }

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AufConnectApi")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9ad4d34d4e7eb30033d06775a5097e062e412a3c")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6e08c0cea07e286b161a369637ced0dbf2dcc666")]
 [assembly: System.Reflection.AssemblyProductAttribute("AufConnectApi")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AufConnectApi")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
