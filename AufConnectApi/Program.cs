@@ -3,6 +3,7 @@ using AufConnectApi.Services;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -77,6 +78,18 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Configure MIME types for static files
+var provider = new FileExtensionContentTypeProvider();
+// Add mapping for APK files
+provider.Mappings[".apk"] = "application/vnd.android.package-archive";
+
+// Enable static files with custom MIME types
+app.UseStaticFiles(new StaticFileOptions
+{
+    ContentTypeProvider = provider
+});
+app.UseDefaultFiles();
 
 app.UseAuthentication();
 app.UseAuthorization();

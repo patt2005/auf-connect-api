@@ -19,5 +19,5 @@ public class ResourceSection
     public string Url { get; set; } = string.Empty;
     
     public Guid ResourceId { get; set; }
-    public Resource Resource { get; set; } = null!;
+    public Resource? Resource { get; set; } = null!;
 }

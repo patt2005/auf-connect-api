@@ -33,7 +33,7 @@ public class ResourcesController : ControllerBase
             var totalSectionsCount = await query
                 .SelectMany(r => r.Sections)
                 .CountAsync();
-            
+
             var resourceSections = await query
                 .SelectMany(r => r.Sections)
                 .Skip((pageNumber - 1) * pageSize)
@@ -119,17 +119,59 @@ public class ResourcesController : ControllerBase
         }
 
         resourceRequest.Id = Guid.NewGuid();
-        
+
         foreach (var section in resourceRequest.Sections)
         {
             section.Id = Guid.NewGuid();
             section.ResourceId = resourceRequest.Id;
         }
-        
+
         _context.Resources.Add(resourceRequest);
         await _context.SaveChangesAsync();
 
         return CreatedAtAction(nameof(GetResources), new { id = resourceRequest.Id }, resourceRequest);
+    }
+
+    [HttpPost("add-resource-section")]
+    public async Task<ActionResult<ResourceSection>> AddResourceSection([FromQuery] Guid resourceId, [FromBody] ResourceSection sectionRequest)
+    {
+        try
+        {
+            if (sectionRequest == null)
+            {
+                return BadRequest("Section data is required.");
+            }
+
+            // Check if the resource exists
+            var resource = await _context.Resources
+                .Include(r => r.Sections)
+                .FirstOrDefaultAsync(r => r.Id == resourceId);
+
+            if (resource == null)
+            {
+                return NotFound($"Resource with ID '{resourceId}' not found.");
+            }
+
+            // Generate new ID for the section and set the resourceId
+            sectionRequest.Id = Guid.NewGuid();
+            sectionRequest.ResourceId = resourceId;
+            sectionRequest.Resource = null; // Clear navigation property
+
+            // Add the section to the database
+            _context.ResourceSections.Add(sectionRequest);
+            await _context.SaveChangesAsync();
+
+            // Reload the section with the resource to return complete data
+            var createdSection = await _context.ResourceSections
+                .Include(s => s.Resource)
+                .FirstOrDefaultAsync(s => s.Id == sectionRequest.Id);
+
+            return CreatedAtAction(nameof(GetResourceByIdOrName), new { id = createdSection.Id }, createdSection);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error adding resource section: {ex.Message}");
+        }
     }
 
     [HttpPost("scrape-resuff-resources")]
@@ -138,7 +180,7 @@ public class ResourcesController : ControllerBase
         try
         {
             var scrapedResources = await _webScrapingService.ScrapeResuffResourcesAsync(url);
-            
+
             if (scrapedResources == null || !scrapedResources.Any())
             {
                 return BadRequest("No resources found to scrape.");
@@ -154,7 +196,7 @@ public class ResourcesController : ControllerBase
                 // Check if resource already exists by link to avoid duplicates
                 var existingResource = await _context.Resources
                     .AnyAsync(r => r.Link == resource.Link);
-                
+
                 if (!existingResource)
                 {
                     _context.Resources.Add(resource);
@@ -164,17 +206,56 @@ public class ResourcesController : ControllerBase
 
             await _context.SaveChangesAsync();
 
-            return Ok(new { 
+            return Ok(new {
                 Message = $"Successfully scraped and saved {addedCount} new resources (out of {scrapedResources.Count} found)",
                 TotalResourcesBeforeScrap = currentResourceCount,
                 TotalResourcesAfterScrap = currentResourceCount + addedCount,
                 NewResourcesAdded = addedCount,
-                Resources = scrapedResources 
+                Resources = scrapedResources
             });
         }
         catch (Exception ex)
         {
             return StatusCode(500, $"Error scraping RESUFF resources: {ex.Message}");
+        }
+    }
+
+    [HttpDelete("{resourceId}/sections/{sectionId}")]
+    public async Task<ActionResult> DeleteResourceSection(Guid resourceId, Guid sectionId)
+    {
+        try
+        {
+            // First, check if the resource exists
+            var resource = await _context.Resources
+                .Include(r => r.Sections)
+                .FirstOrDefaultAsync(r => r.Id == resourceId);
+
+            if (resource == null)
+            {
+                return NotFound($"Resource with ID '{resourceId}' not found.");
+            }
+
+            // Find the section within that resource
+            var section = resource.Sections.FirstOrDefault(s => s.Id == sectionId);
+
+            if (section == null)
+            {
+                return NotFound($"Section with ID '{sectionId}' not found in resource '{resourceId}'.");
+            }
+
+            // Remove the section
+            _context.ResourceSections.Remove(section);
+            await _context.SaveChangesAsync();
+
+            return Ok(new {
+                Message = "Resource section deleted successfully.",
+                DeletedSectionId = sectionId,
+                ResourceId = resourceId
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error deleting resource section: {ex.Message}");
         }
     }
 }

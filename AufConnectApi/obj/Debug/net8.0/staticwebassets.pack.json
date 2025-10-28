@@ -1,0 +1,53 @@
+{
+  "Files": [
+    {
+      "Id": "/Users/petrugrigor/Documents/AufConnectApi/AufConnectApi/wwwroot/MOBILE_OPTIMIZATION.md",
+      "PackagePath": "staticwebassets/MOBILE_OPTIMIZATION.md"
+    },
+    {
+      "Id": "/Users/petrugrigor/Documents/AufConnectApi/AufConnectApi/wwwroot/README.md",
+      "PackagePath": "staticwebassets/README.md"
+    },
+    {
+      "Id": "/Users/petrugrigor/Documents/AufConnectApi/AufConnectApi/wwwroot/css/styles.css",
+      "PackagePath": "staticwebassets/css/styles.css"
+    },
+    {
+      "Id": "/Users/petrugrigor/Documents/AufConnectApi/AufConnectApi/wwwroot/downloads/auf-connect.apk",
+      "PackagePath": "staticwebassets/downloads/auf-connect.apk"
+    },
+    {
+      "Id": "/Users/petrugrigor/Documents/AufConnectApi/AufConnectApi/wwwroot/images/README.md",
+      "PackagePath": "staticwebassets/images/README.md"
+    },
+    {
+      "Id": "/Users/petrugrigor/Documents/AufConnectApi/AufConnectApi/wwwroot/images/screenshot.png",
+      "PackagePath": "staticwebassets/images/screenshot.png"
+    },
+    {
+      "Id": "/Users/petrugrigor/Documents/AufConnectApi/AufConnectApi/wwwroot/index.html",
+      "PackagePath": "staticwebassets/index.html"
+    },
+    {
+      "Id": "/Users/petrugrigor/Documents/AufConnectApi/AufConnectApi/wwwroot/js/main.js",
+      "PackagePath": "staticwebassets/js/main.js"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.AufConnectApi.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.build.AufConnectApi.props",
+      "PackagePath": "build\\AufConnectApi.props"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.buildMultiTargeting.AufConnectApi.props",
+      "PackagePath": "buildMultiTargeting\\AufConnectApi.props"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.buildTransitive.AufConnectApi.props",
+      "PackagePath": "buildTransitive\\AufConnectApi.props"
+    }
+  ],
+  "ElementsToRemove": []
+}

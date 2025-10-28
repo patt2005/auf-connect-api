@@ -6,7 +6,8 @@
       "Bash(dotnet ef database:*)",
       "Bash(dotnet add package:*)",
       "Bash(dotnet build)",
-      "Bash(dotnet ef dbcontext script:*)"
+      "Bash(dotnet ef dbcontext script:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []
