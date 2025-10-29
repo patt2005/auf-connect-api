@@ -10,6 +10,17 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configure Kestrel for large file downloads
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    // Allow large file responses (100MB max)
+    serverOptions.Limits.MaxResponseBufferSize = 100 * 1024 * 1024;
+    serverOptions.Limits.MaxRequestBodySize = 100 * 1024 * 1024;
+    // Increase timeout for large file downloads
+    serverOptions.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(2);
+    serverOptions.Limits.RequestHeadersTimeout = TimeSpan.FromMinutes(2);
+});
+
 // Configure Firebase
 var credentials = Environment.GetEnvironmentVariable("FirebaseAuthCredentials");
 if (!string.IsNullOrEmpty(credentials))
@@ -84,10 +95,25 @@ var provider = new FileExtensionContentTypeProvider();
 // Add mapping for APK files
 provider.Mappings[".apk"] = "application/vnd.android.package-archive";
 
-// Enable static files with custom MIME types
+// Enable static files with custom MIME types and support for large files
 app.UseStaticFiles(new StaticFileOptions
 {
-    ContentTypeProvider = provider
+    ContentTypeProvider = provider,
+    // Enable range requests for large file downloads (allows resume)
+    HttpsCompression = Microsoft.AspNetCore.Http.Features.HttpsCompressionMode.DoNotCompress,
+    OnPrepareResponse = ctx =>
+    {
+        // For APK files, set appropriate headers
+        if (ctx.File.Name.EndsWith(".apk", StringComparison.OrdinalIgnoreCase))
+        {
+            // Enable range requests (important for large files)
+            ctx.Context.Response.Headers.Append("Accept-Ranges", "bytes");
+            // Set cache control
+            ctx.Context.Response.Headers.Append("Cache-Control", "public, max-age=3600");
+            // Ensure Content-Disposition for download
+            ctx.Context.Response.Headers.Append("Content-Disposition", $"attachment; filename=\"{ctx.File.Name}\"");
+        }
+    }
 });
 app.UseDefaultFiles();
 

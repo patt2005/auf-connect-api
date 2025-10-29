@@ -25,4 +25,12 @@
       </Content>
     </ItemGroup>
 
+    <!-- Ensure APK file is included in publish output -->
+    <ItemGroup>
+      <Content Update="wwwroot\downloads\**\*">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </Content>
+    </ItemGroup>
+
 </Project>

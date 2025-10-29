@@ -25,4 +25,12 @@ FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 
+# Ensure wwwroot/downloads directory exists and verify APK file is present
+RUN mkdir -p wwwroot/downloads && \
+    if [ -f wwwroot/downloads/auf-connect.apk ]; then \
+        echo "APK file found: $(ls -lh wwwroot/downloads/auf-connect.apk)"; \
+    else \
+        echo "WARNING: APK file not found in Docker image!"; \
+    fi
+
 ENTRYPOINT ["dotnet", "AufConnectApi.dll"]
