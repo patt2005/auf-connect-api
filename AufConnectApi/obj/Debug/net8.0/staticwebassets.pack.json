@@ -13,6 +13,10 @@
       "PackagePath": "staticwebassets/css/styles.css"
     },
     {
+      "Id": "/Users/petrugrigor/Documents/AufConnectApi/AufConnectApi/wwwroot/downloads/README.md",
+      "PackagePath": "staticwebassets/downloads/README.md"
+    },
+    {
       "Id": "/Users/petrugrigor/Documents/AufConnectApi/AufConnectApi/wwwroot/downloads/auf-connect.apk",
       "PackagePath": "staticwebassets/downloads/auf-connect.apk"
     },

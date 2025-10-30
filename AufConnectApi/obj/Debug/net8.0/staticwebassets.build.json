@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "sBdA3NbzpoBMIfJ0vYd6DLVT2C2FQbtVbTd+ms7SeYM=",
+  "Hash": "+Ehrm8b0FN/2/rVcbVvtWILMwIP77ek9iNNOXbhC0mE=",
   "Source": "AufConnectApi",
   "BasePath": "_content/AufConnectApi",
   "Mode": "Default",
@@ -50,9 +50,28 @@
       "RelatedAsset": "",
       "AssetTraitName": "",
       "AssetTraitValue": "",
-      "CopyToOutputDirectory": "Never",
+      "CopyToOutputDirectory": "PreserveNewest",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot/downloads/auf-connect.apk"
+    },
+    {
+      "Identity": "/Users/petrugrigor/Documents/AufConnectApi/AufConnectApi/wwwroot/downloads/README.md",
+      "SourceId": "AufConnectApi",
+      "SourceType": "Discovered",
+      "ContentRoot": "/Users/petrugrigor/Documents/AufConnectApi/AufConnectApi/wwwroot/",
+      "BasePath": "_content/AufConnectApi",
+      "RelativePath": "downloads/README.md",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "PreserveNewest",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot/downloads/README.md"
     },
     {
       "Identity": "/Users/petrugrigor/Documents/AufConnectApi/AufConnectApi/wwwroot/images/README.md",

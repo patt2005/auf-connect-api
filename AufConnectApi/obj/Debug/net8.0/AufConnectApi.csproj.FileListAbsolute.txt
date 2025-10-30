@@ -123,3 +123,5 @@
 /Users/petrugrigor/Documents/AufConnectApi/AufConnectApi/bin/Debug/net8.0/runtimes/win/lib/net7.0/System.Management.dll
 /Users/petrugrigor/Documents/AufConnectApi/AufConnectApi/obj/Debug/net8.0/AufConnectApi.sourcelink.json
 /Users/petrugrigor/Documents/AufConnectApi/AufConnectApi/bin/Debug/net8.0/AufConnectApi.staticwebassets.runtime.json
+/Users/petrugrigor/Documents/AufConnectApi/AufConnectApi/bin/Debug/net8.0/wwwroot/downloads/auf-connect.apk
+/Users/petrugrigor/Documents/AufConnectApi/AufConnectApi/bin/Debug/net8.0/wwwroot/downloads/README.md
